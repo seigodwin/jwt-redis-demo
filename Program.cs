@@ -11,6 +11,10 @@ using JwtDemo.Services.Auth.Interfaces;
 using JwtDemo.Services.Auth.Implimentations;
 using JwtDemo.Models;
 using Microsoft.AspNetCore.RateLimiting;
+using JwtDemo.Services.Products.Interfaces;
+using JwtDemo.Services.Products.Implimentaions;
+using JwtDemo.Services.Users.Interfaces;
+using JwtDemo.Services.Users.Implimentations;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -59,6 +63,8 @@ builder.Services.AddRateLimiter(options =>
 //App services
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ITokenGenerator, TokenGenerator>();
+builder.Services.AddScoped<IProductService, ProductService>();
+builder.Services.AddScoped<IUserService, UserService>();
 
 
 //Add JwtOptions from .env file

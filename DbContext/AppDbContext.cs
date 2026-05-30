@@ -21,14 +21,17 @@ namespace JwtDemo.DbContext
                 entity.HasIndex(u => u.Email).IsUnique();
             });
             
-            builder.Entity<Product>()
-            .HasData( new Product
+            builder.Entity<Product>(entity =>
             {
-                    Id = 1,
-                    Name = "Product 1",
-                    Description = "Description for product 1",
-                    Price = 10
-            } );
+                entity.HasIndex(p => p.Name);
+                entity.HasData( new Product
+                {
+                        Id = 1,
+                        Name = "Product 1",
+                        Description = "Description for product 1",
+                        Price = 10
+                });
+            });  
         }
     }
 }

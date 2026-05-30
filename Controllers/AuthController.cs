@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.RateLimiting;
 namespace JwtDemo.Controllers
 {
     [ApiController]
-    [Route("api/v1/[controller]")]
+    [Route("api/v1/auth/user")]
     public class AuthController : ControllerBase
     {
         private readonly IAuthService _authService;
@@ -89,5 +89,6 @@ namespace JwtDemo.Controllers
             var result = await _authService.AssignRolesAsync(request);
             return result.Success ? NoContent() : BadRequest(result);
         }
+
     }
 }

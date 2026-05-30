@@ -2,7 +2,7 @@
 using JwtDemo.Dtos.ProductDtos;
 using JwtDemo.Utility;
 
-namespace JwtDemo.Services.Product.Interfaces
+namespace JwtDemo.Services.Products.Interfaces
 {
     public interface IProductService
     {
@@ -11,5 +11,6 @@ namespace JwtDemo.Services.Product.Interfaces
         Task<ServiceResponse<CreateProductResponseDto>> CreateAsync(CreateProductRequestDto request);
         Task<ServiceResponse<string>> UpdateAsync(int id, UpdateProductRequestDto request);
         Task<ServiceResponse<bool>> DeleteAsync(int id);
+        Task<ServiceResponse<List<CreateProductResponseDto>>> SearchAsync(string query, int pageNumber, int pageSize);
     }
 }

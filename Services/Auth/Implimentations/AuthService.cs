@@ -14,12 +14,14 @@ namespace JwtDemo.Services.Auth.Implimentations
         private readonly AppDbContext _context;
         private readonly ITokenGenerator _tokenGenerator;
         private readonly UserManager<User> _userManager;
+        private readonly RoleManager<IdentityRole> _roleManager;
         public AuthService(AppDbContext context, ITokenGenerator tokenGenerator, 
-        UserManager<User> userManager)
+        UserManager<User> userManager, RoleManager<IdentityRole> roleManager)
         {
             _context = context;
             _tokenGenerator = tokenGenerator;
             _userManager = userManager;
+            _roleManager = roleManager;
         }
 
         public async Task<ServiceResponse<string>> AssignRolesAsync(AssignRolesRequestDto request)
@@ -63,7 +65,21 @@ namespace JwtDemo.Services.Auth.Implimentations
 
                 try
                 {
-                    var roleResults = await _userManager.AddToRolesAsync(user, cleanRoles);
+                    //Check for each role if it exists, if not create it
+
+                    foreach(var role in cleanRoles)
+                    {
+                        if(!await _roleManager.RoleExistsAsync(role))
+                        {
+                            await _roleManager.CreateAsync(new IdentityRole(role));
+                            await _context.SaveChangesAsync();
+                        }
+
+                    }
+
+                    var rolesToAdd = cleanRoles.Except(await _userManager.GetRolesAsync(user)).ToList();
+                    
+                    var roleResults = await _userManager.AddToRolesAsync(user, rolesToAdd);
 
                     if (!roleResults.Succeeded)
                     {
