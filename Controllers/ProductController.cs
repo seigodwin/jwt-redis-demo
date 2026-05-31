@@ -2,12 +2,14 @@
 
 using JwtDemo.Dtos.ProductDtos;
 using JwtDemo.Services.Products.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace JwtDemo.Controllers
 {
     [ApiController]
     [Route("api/v1/product")]
+    [Authorize(Roles = "Admin,Supervisor")]
     public class ProductController : ControllerBase
     {
         private readonly IProductService _productService;

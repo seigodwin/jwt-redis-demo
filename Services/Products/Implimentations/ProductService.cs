@@ -5,15 +5,18 @@ using JwtDemo.Services.Products.Interfaces;
 using JwtDemo.Utility;
 using JwtDemo.Models;
 using Microsoft.EntityFrameworkCore;
+using JwtDemo.Services.Caching.Interfaces;
 
 namespace JwtDemo.Services.Products.Implimentaions
 {
     public class ProductService : IProductService
     {
             private readonly AppDbContext _context;
-        public ProductService(AppDbContext context)
+            private readonly IRedisCacheService _cacheService;
+        public ProductService(AppDbContext context, IRedisCacheService cacheService)
         {
             _context = context;
+            _cacheService = cacheService;
         }
         public async Task<ServiceResponse<CreateProductResponseDto>> CreateAsync(CreateProductRequestDto request)
         {
@@ -36,6 +39,7 @@ namespace JwtDemo.Services.Products.Implimentaions
             {
                 await _context.Products.AddAsync(product);
                 await _context.SaveChangesAsync();
+                await _cacheService.SetAsync($"product:{product.Id}", product, TimeSpan.FromMinutes(10));
                 
                 response.Data = new CreateProductResponseDto
                 {
@@ -71,6 +75,7 @@ namespace JwtDemo.Services.Products.Implimentaions
             {
                 _context.Products.Remove(product);
                 await _context.SaveChangesAsync();
+                await _cacheService.RemoveAsync($"product:{id}");
                 response.Message = "Product deleted successfully.";
             }
             catch (Exception ex)
@@ -85,6 +90,15 @@ namespace JwtDemo.Services.Products.Implimentaions
         public async Task<ServiceResponse<List<CreateProductResponseDto>>> GetAllAsync(int pageNumber, int pageSize)
         {
             var response = new ServiceResponse<List<CreateProductResponseDto>>();
+            var cacheKey = $"products:page:{pageNumber}:size:{pageSize}";
+            var cachedProducts = await _cacheService.GetAsync<List<CreateProductResponseDto>>(cacheKey);
+            
+            if (cachedProducts is not null)
+            {
+                response.Data = cachedProducts;
+                response.Message = "Products retrieved from cache successfully.";
+                return response;
+            }
             try
             {
                 if (_context.Products.Any())
@@ -102,7 +116,8 @@ namespace JwtDemo.Services.Products.Implimentaions
                     .ToList();
 
                     response.Data = products;
-                    response.Message = "Products retrieved successfully.";
+                    response.Message = "Products retrieved from databse successfully.";
+                    await _cacheService.SetAsync(cacheKey, products, TimeSpan.FromMinutes(10));
                 }
                 else
                 {
@@ -120,6 +135,17 @@ namespace JwtDemo.Services.Products.Implimentaions
         public async Task<ServiceResponse<CreateProductResponseDto>> GetByIdAsync(int id)
         {
             var response = new ServiceResponse<CreateProductResponseDto>();
+
+            var cacheKey = $"product:{id}";
+            var cachedProduct = await _cacheService.GetAsync<CreateProductResponseDto>(cacheKey);
+
+            if (cachedProduct is not null)
+            {
+                response.Data = cachedProduct;
+                response.Message = "Product retrieved from cache successfully.";
+                return response;
+            }
+
             var product = await _context.Products.FindAsync(id);
 
             if (product == null)
@@ -136,6 +162,7 @@ namespace JwtDemo.Services.Products.Implimentaions
                 Description = product.Description,
                 Price = product.Price
             };
+            await _cacheService.SetAsync(cacheKey, response.Data, TimeSpan.FromMinutes(10));
             response.Message = "Product retrieved successfully.";
 
             return response;
@@ -144,6 +171,15 @@ namespace JwtDemo.Services.Products.Implimentaions
         public async Task<ServiceResponse<List<CreateProductResponseDto>>> SearchAsync(string query, int pageNumber, int pageSize)
         {
             var response = new ServiceResponse<List<CreateProductResponseDto>>();
+
+            var cacheKey = $"products:search:{query}:page:{pageNumber}:size:{pageSize}";
+            var cachedProducts = await _cacheService.GetAsync<List<CreateProductResponseDto>>(cacheKey);
+            if (cachedProducts is not null)
+            {
+                response.Data = cachedProducts;
+                response.Message = "Search results retrieved from cache successfully.";
+                return response;
+            }
 
             if (!string.IsNullOrWhiteSpace(query))
             {
@@ -167,6 +203,7 @@ namespace JwtDemo.Services.Products.Implimentaions
                         }).ToList();
 
                         response.Message = "Products retrieved successfully.";
+                        await _cacheService.SetAsync(cacheKey, response.Data, TimeSpan.FromMinutes(10));
                     }
 
                     else

@@ -77,7 +77,7 @@ namespace JwtDemo.Services.Users.Implimentations
                   response.Success = false;
                   response.Message = "No users found.";
               }
-              return response;
+              return response!;
         }
 
         public async Task<ServiceResponse<GetUserResponseDto>> GetByIdAsync(string id)

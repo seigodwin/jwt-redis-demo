@@ -38,7 +38,7 @@ namespace JwtDemo.Services.Auth.Interfaces
 
             var roles = await _userManager.GetRolesAsync(user);
 
-            if(user is not null)
+            if(roles.Any())
             {
                 claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
             }
