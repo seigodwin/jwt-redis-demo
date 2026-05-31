@@ -48,7 +48,7 @@ Authorization: Bearer {token}
 
 ## Setup
 1. Clone repository
-2. Copy env variables from .env.example and create your own .env file
+2. Copy env variables from .env.example to create and configure your .env file
 3. Run dotnet restore
 3. Run migrations
 4. Start Redis server
