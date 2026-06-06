@@ -1,4 +1,5 @@
 # JWT Demo API
+[![.NET CI](https://github.com/seigodwin/jwt-redis-demo/actions/workflows/ci.yml/badge.svg)](https://github.com/seigodwin/jwt-redis-demo/actions/workflows/ci.yml)
 
 ## Overview
 This is an ASP.NET Core Web API that implements JWT authentication, role-based authorization, and Redis caching for optimized performance.
