@@ -75,6 +75,7 @@ namespace JwtDemo.Services.Products.Implimentaions
             {
                 _context.Products.Remove(product);
                 await _context.SaveChangesAsync();
+
                 await _cacheService.RemoveAsync($"product:{id}");
                 response.Message = "Product deleted successfully.";
             }
@@ -117,7 +118,7 @@ namespace JwtDemo.Services.Products.Implimentaions
 
                     response.Data = products;
                     response.Message = "Products retrieved from databse successfully.";
-                    await _cacheService.SetAsync(cacheKey, products, TimeSpan.FromMinutes(10));
+                    await _cacheService.SetAsync(cacheKey, products, TimeSpan.FromMinutes(10), TimeSpan.FromMinutes(5));
                 }
                 else
                 {
@@ -203,7 +204,7 @@ namespace JwtDemo.Services.Products.Implimentaions
                         }).ToList();
 
                         response.Message = "Products retrieved successfully.";
-                        await _cacheService.SetAsync(cacheKey, response.Data, TimeSpan.FromMinutes(10));
+                        await _cacheService.SetAsync(cacheKey, response.Data, TimeSpan.FromMinutes(3));
                     }
 
                     else
@@ -220,7 +221,6 @@ namespace JwtDemo.Services.Products.Implimentaions
             
             return response;
         }
-
 
         public async Task<ServiceResponse<string>> UpdateAsync(int id, UpdateProductRequestDto request)
         {
@@ -241,6 +241,7 @@ namespace JwtDemo.Services.Products.Implimentaions
             try
             {
                 await _context.SaveChangesAsync();
+                await _cacheService.RemoveAsync($"product:{id}");
                 response.Message = "Product updated successfully.";
             }
             catch (Exception ex)

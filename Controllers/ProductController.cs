@@ -20,7 +20,7 @@ namespace JwtDemo.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAll([FromRoute]int pageNumber = 1,[FromRoute] int pageSize = 10)
+        public async Task<IActionResult> GetAll(int pageNumber = 1, int pageSize = 10)
         {
             var response = await _productService.GetAllAsync(pageNumber, pageSize);
             

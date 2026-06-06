@@ -39,15 +39,22 @@ namespace JwtDemo.Services.Caching.Implimentations
             await _redisCacheService.RemoveAsync(key);
         }
 
-        public async Task SetAsync<T>(string key, T value, TimeSpan expiry)
+        public async Task SetAsync<T>(string key, T value, 
+        TimeSpan? absoluteExpiry = null, TimeSpan? slidingExpiry = null)
         {
             if(value is null || string.IsNullOrEmpty(key)) return;
 
-            var options = new DistributedCacheEntryOptions
+            var options = new DistributedCacheEntryOptions();
+            if (absoluteExpiry.HasValue)
             {
-                AbsoluteExpirationRelativeToNow = expiry
-            };
+                options.AbsoluteExpirationRelativeToNow = absoluteExpiry.Value;
+            }
 
+            if (slidingExpiry.HasValue)
+            {
+                options.SlidingExpiration = slidingExpiry;
+            }
+           
             var jsonData = JsonSerializer.Serialize(value);
             await _redisCacheService.SetStringAsync(key, jsonData, options);
     
