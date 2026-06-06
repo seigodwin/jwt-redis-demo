@@ -9,9 +9,11 @@ namespace JwtDemo.Services.Auth.Interfaces
     {
         Task<ServiceResponse<RegisterResponseDto>> RegisterAsync(RegisterRequestDto request);
         Task<ServiceResponse<AuthenticatedUserDto>> LoginAsync(LoginRequestDto request);
+                Task<ServiceResponse<AuthenticatedUserDto>> RefreshAsync(RefreshTokenRequestDto request);
         Task<ServiceResponse<string>> ForgotPasswordAsync(ForgotPasswordRequestDto request);
         Task<ServiceResponse<string>> ResetPasswordAsync(ResetPasswordRequestDto request);
         Task<ServiceResponse<string>> ConfirmEmailAsync(ConfirmEmailRequestDto request);
         Task<ServiceResponse<string>> AssignRolesAsync(AssignRolesRequestDto request);
+        
     }
 }

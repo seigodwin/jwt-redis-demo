@@ -3,6 +3,7 @@ using System;
 using JwtDemo.DbContext;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace JwtDemo.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260606144720_UpdateRefreshToken")]
+    partial class UpdateRefreshToken
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -72,13 +75,13 @@ namespace JwtDemo.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<DateTime>("DateAdded")
+                    b.Property<DateTime>("AddedDate")
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("date_added");
+                        .HasColumnName("added_date");
 
-                    b.Property<DateTime>("ExpiryDate")
+                    b.Property<DateTime>("ExpiredDate")
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("expiry_date");
+                        .HasColumnName("expired_date");
 
                     b.Property<bool>("IsRevoked")
                         .HasColumnType("boolean")
@@ -88,9 +91,8 @@ namespace JwtDemo.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("is_used");
 
-                    b.Property<string>("JwtId")
-                        .IsRequired()
-                        .HasColumnType("text")
+                    b.Property<int>("JwtId")
+                        .HasColumnType("integer")
                         .HasColumnName("jwt_id");
 
                     b.Property<string>("Token")

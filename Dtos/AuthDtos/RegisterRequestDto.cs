@@ -6,9 +6,9 @@ namespace JwtDemo.Dtos
     public class RegisterRequestDto
     {
         [MaxLength(50)]
-        public string FirstName { get; set; } = string.Empty;
+        public required string FirstName { get; set; }
         [MaxLength(50)]
-        public string LastName { get; set; } = string.Empty;
+        public required string LastName { get; set; } 
         [MaxLength(50)]
         public string UserName { get; set; } = string.Empty;
         [EmailAddress]

@@ -3,6 +3,7 @@ using System;
 using JwtDemo.DbContext;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace JwtDemo.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260606142237_AddRefreshTokens")]
+    partial class AddRefreshTokens
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -72,25 +75,8 @@ namespace JwtDemo.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<DateTime>("DateAdded")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("date_added");
-
-                    b.Property<DateTime>("ExpiryDate")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("expiry_date");
-
-                    b.Property<bool>("IsRevoked")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_revoked");
-
-                    b.Property<bool>("IsUsed")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_used");
-
-                    b.Property<string>("JwtId")
-                        .IsRequired()
-                        .HasColumnType("text")
+                    b.Property<int>("JwtId")
+                        .HasColumnType("integer")
                         .HasColumnName("jwt_id");
 
                     b.Property<string>("Token")
@@ -102,6 +88,14 @@ namespace JwtDemo.Migrations
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("user_id");
+
+                    b.Property<bool>("isRevoked")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_revoked");
+
+                    b.Property<bool>("isUsed")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_used");
 
                     b.HasKey("Id")
                         .HasName("pk_refresh_tokens");

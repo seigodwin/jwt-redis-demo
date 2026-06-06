@@ -12,14 +12,14 @@ namespace JwtDemo.Services.Auth.Implimentations
     public class AuthService : IAuthService
     {
         private readonly AppDbContext _context;
-        private readonly ITokenGenerator _tokenGenerator;
+        private readonly ITokenService _tokenService;
         private readonly UserManager<User> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
-        public AuthService(AppDbContext context, ITokenGenerator tokenGenerator, 
+        public AuthService(AppDbContext context, ITokenService tokenService, 
         UserManager<User> userManager, RoleManager<IdentityRole> roleManager)
         {
             _context = context;
-            _tokenGenerator = tokenGenerator;
+            _tokenService = tokenService;
             _userManager = userManager;
             _roleManager = roleManager;
         }
@@ -203,14 +203,50 @@ namespace JwtDemo.Services.Auth.Implimentations
                 return response;
             }
 
-            var token = await _tokenGenerator.GenerateTokenAsync(user);
+            var tokens = await _tokenService.GenerateTokenPairAsync(user);
+
+            if(tokens is null)
+            {
+                response.Success = false;
+                response.Message = "Failed to login";
+                return response;
+            }
+
             response.Message = "Login successful";
 
             response.Data = new AuthenticatedUserDto
             {
-                UserName = user.UserName!,
-                Token = token
+                UserName = tokens.UserName,
+                AccessToken = tokens.AccessToken,
+                RefreshToken = tokens.RefreshToken,
+                AccessTokenExpiry = tokens.AccessTokenExpiry
             };
+            
+            return response;
+        }
+
+        public async Task<ServiceResponse<AuthenticatedUserDto>> RefreshAsync(RefreshTokenRequestDto request)
+        {
+            var response = new ServiceResponse<AuthenticatedUserDto>();
+            if(request is null  || string.IsNullOrEmpty(request.RefreshToken))
+            {
+                response.Success = false;
+                response.Message = "Provide valid data to continue";
+                return response;
+            }
+
+            var results = await _tokenService.RefreshAsync(request);
+
+            if(results is null)
+            {
+                response.Success = false;
+                response.Message = "Failed to refresh token";
+                return response;
+            }
+            
+            response.Data = results;
+            response.Message = "Token refresh successfull";
+            
             return response;
         }
 

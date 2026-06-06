@@ -90,5 +90,17 @@ namespace JwtDemo.Controllers
             return result.Success ? NoContent() : BadRequest(result);
         }
 
+        [HttpPost("refresh")]
+        public async Task<IActionResult> Refresh (RefreshTokenRequestDto dto)
+        {
+            if(dto is not null && ModelState.IsValid)
+            {
+               var response = await _authService.RefreshAsync(dto);
+               return response.Success ? Ok(response) : BadRequest(response);
+            }
+
+            return BadRequest(ModelState);
+        }
+
     }
 }

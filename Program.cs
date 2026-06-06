@@ -71,7 +71,7 @@ builder.Services.AddStackExchangeRedisCache( o =>
 
 //App services
 builder.Services.AddScoped<IAuthService, AuthService>(); 
-builder.Services.AddScoped<ITokenGenerator, TokenGenerator>();
+builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IRedisCacheService, RedisCacheService>();
