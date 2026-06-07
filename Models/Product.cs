@@ -6,7 +6,7 @@ namespace JwtDemo.Models
     {
         [Key]
         public int Id {get;set ;}
-        [MaxLength(100)]
+        [MaxLength(50)]
         public required string Name {get;set;}
         public string? Description {get;set;}
         [Range(0, double.MaxValue, ErrorMessage = "Price must be a positive value.")]
