@@ -12,8 +12,8 @@ namespace JwtDemo.Services.Products.Implimentaions
     public class ProductService : IProductService
     {
             private readonly AppDbContext _context;
-            private readonly IRedisCacheService _cacheService;
-        public ProductService(AppDbContext context, IRedisCacheService cacheService)
+            private readonly IDistributedRedisCacheService _cacheService;
+        public ProductService(AppDbContext context, IDistributedRedisCacheService cacheService)
         {
             _context = context;
             _cacheService = cacheService;

@@ -4,6 +4,7 @@ using JwtDemo.Dtos;
 using JwtDemo.Dtos.AuthDtos;
 using JwtDemo.Models;
 using JwtDemo.Services.Auth.Interfaces;
+using JwtDemo.Services.Caching.Interfaces;
 using JwtDemo.Utility;
 using Microsoft.AspNetCore.Identity;
 
@@ -15,9 +16,11 @@ namespace JwtDemo.Services.Auth.Implimentations
         private readonly ITokenService _tokenService;
         private readonly UserManager<User> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
+        private readonly IRedisCacheService _redisCacheService;
         public AuthService(AppDbContext context, ITokenService tokenService, 
-        UserManager<User> userManager, RoleManager<IdentityRole> roleManager)
+        UserManager<User> userManager, IRedisCacheService redisCacheService, RoleManager<IdentityRole> roleManager)
         {
+            _redisCacheService = redisCacheService;
             _context = context;
             _tokenService = tokenService;
             _userManager = userManager;
@@ -158,6 +161,16 @@ namespace JwtDemo.Services.Auth.Implimentations
                 return response;
             }
 
+            var key = $"forgot-password:{request.Email}";
+
+            var blocked = await _redisCacheService.IsRateLimited(key,3,TimeSpan.FromMinutes(15));
+            if (blocked)
+            {
+                response.Success = false;
+                response.Message = "Too many attempts. Try again in 15 minutes";
+                return response;
+            }
+
             if(! await _userManager.IsEmailConfirmedAsync(user))
             {
                 response.Success = false;
@@ -186,6 +199,16 @@ namespace JwtDemo.Services.Auth.Implimentations
             {
                 response.Success = false;
                 response.Message = "Invalid email";
+                return response;
+            }
+
+            var key = $"login:{request.Email}";
+                 
+            var blocked = await _redisCacheService.IsRateLimited(key,5,TimeSpan.FromMinutes(1));
+            if (blocked)
+            {
+                response.Success = false;
+                response.Message = "Too many failed attempts. Try again in a minutes";
                 return response;
             }
 
@@ -378,6 +401,16 @@ namespace JwtDemo.Services.Auth.Implimentations
                 return response;
             }
 
+            var key = $"reset-password:{request.Email}";
+
+            var blocked = await _redisCacheService.IsRateLimited(key,3,TimeSpan.FromMinutes(15));
+            if (blocked)
+            {
+                response.Success = false;
+                response.Message = "Too many failed attempts. Try again in 15 minutes";
+                return response;
+            }
+
             if(request.NewPassword != request.ConfirmPassword)
             {
                 response.Success = false;
@@ -389,12 +422,12 @@ namespace JwtDemo.Services.Auth.Implimentations
             if(!result.Succeeded)
             {
                 response.Success = false;
-                response.Message = "Invalid token or expired token";
+                response.Message = "Invalid or expired token";
                 return response;
             }
 
             response.Message = "Password reset successful";
             return response;
-        }
+        } 
     }
 }

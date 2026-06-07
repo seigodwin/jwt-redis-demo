@@ -12,6 +12,7 @@ using JwtDemo.DbContext;
 using System.Security.Cryptography;
 using System.Security;
 using Microsoft.EntityFrameworkCore;
+using JwtDemo.Services.Caching.Interfaces;
 
 
 
@@ -23,11 +24,15 @@ namespace JwtDemo.Services.Auth.Interfaces
         private readonly JwtOptions _jwtOptions;
         private readonly UserManager<User> _userManager;
         private readonly AppDbContext _context;
-        public TokenService(IOptions<JwtOptions> jwtOptions, AppDbContext context, UserManager<User> userManager)
+        private readonly IDistributedRedisCacheService _redisCacheService;
+        public TokenService(IOptions<JwtOptions> jwtOptions, 
+        IDistributedRedisCacheService redisCacheService, AppDbContext context, UserManager<User> userManager)
         {
+            
             _jwtOptions = jwtOptions.Value;
             _userManager = userManager;
             _context = context;
+            _redisCacheService = redisCacheService;
         }
         public async Task<AuthenticatedUserDto> GenerateTokenPairAsync(User user)
         {
@@ -47,8 +52,8 @@ namespace JwtDemo.Services.Auth.Interfaces
             var claims = new List<Claim>
             {
                 new Claim(JwtRegisteredClaimNames.Sub, user.Id),
-                new Claim(JwtRegisteredClaimNames.Name, user.UserName!),
-                new Claim(JwtRegisteredClaimNames.Email, user.Email!),
+                new Claim(JwtRegisteredClaimNames.Name, user.UserName ?? string.Empty),
+                new Claim(JwtRegisteredClaimNames.Email, user.Email ?? string.Empty),
                 new Claim(JwtRegisteredClaimNames.Jti, JwtId)
             };
 
@@ -69,26 +74,16 @@ namespace JwtDemo.Services.Auth.Interfaces
             };
             var accessToken = tokenHandler.CreateToken(tokenDescriptor);
 
+            
             //Generate refresh Token
              var randomBytes = new byte[64];
             using var rng = RandomNumberGenerator.Create();
             rng.GetBytes(randomBytes);
             var refreshTokenValue = Convert.ToBase64String(randomBytes);
 
-    
-            var refreshToken = new RefreshToken
-            {
-                JwtId = JwtId,
-                UserId = user.Id,
-                Token = refreshTokenValue,
-                DateAdded = DateTime.UtcNow,
-                ExpiryDate = DateTime.UtcNow.AddDays(7),
-                IsUsed = false,
-                IsRevoked = false
-            };
-
-            await _context.RefreshTokens.AddAsync(refreshToken);
-            await _context.SaveChangesAsync();
+            var cacheKey = $"refresh:{user.Id}";
+            
+            await _redisCacheService.SetAsync(cacheKey, refreshTokenValue, TimeSpan.FromDays(7));
 
             return new AuthenticatedUserDto
             {
@@ -106,6 +101,7 @@ namespace JwtDemo.Services.Auth.Interfaces
                 throw new SecurityException("Provide valid data to continue");
             }
 
+            //validate incoming access token
             var tokenHandler = new JsonWebTokenHandler();
             var validTokenParameters = new TokenValidationParameters
             {
@@ -120,34 +116,43 @@ namespace JwtDemo.Services.Auth.Interfaces
             };
 
             var validToken = await tokenHandler.ValidateTokenAsync(dto.AccessToken, validTokenParameters);
-            if(!validToken.IsValid)
+
+            if(!validToken.IsValid || validToken.SecurityToken is not JsonWebToken jwtToken)
             {
                 throw new SecurityException("Invalid access token");
             }
 
-            var JwtId = validToken.SecurityToken.Id;
-            var storedRefreshToken = await _context.RefreshTokens.FirstOrDefaultAsync(rt => rt.JwtId == JwtId);
-            if(storedRefreshToken is null)
+            var userId =  jwtToken.Claims.FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Sub)?.Value ?? string.Empty;
+
+            if (string.IsNullOrEmpty(userId))
+            {
+                throw new SecurityException("User not found");
+            }
+
+            //fetch and verify stored refresh token
+            var key = $"refresh:{userId}";
+
+            var storedRefreshToken = await _redisCacheService.GetAsync<string>(key);
+
+            if(storedRefreshToken is null || string.IsNullOrEmpty(storedRefreshToken))
             {
                 throw new SecurityException("Refresh token does not exist");
             }
 
-            if(storedRefreshToken.IsUsed || storedRefreshToken.IsRevoked || storedRefreshToken.ExpiryDate < DateTime.UtcNow)
+            if(storedRefreshToken != dto.RefreshToken)
             {
-                throw new SecurityException("Invalid refresh token");
+                throw new SecurityException("Refresh token mismatch");
             }
 
 
-            var user = await _context.Users.FindAsync(storedRefreshToken.UserId);
+            var user = await _context.Users.FindAsync(userId);
             if(user is null)
             {
                 throw new SecurityException("User no longer exists");
             }
 
             //Rotate stored token
-            storedRefreshToken.IsUsed = true;
-            _context.RefreshTokens.Update(storedRefreshToken);
-            await _context.SaveChangesAsync();
+            await _redisCacheService.RemoveAsync(key);
 
             return await GenerateTokenPairAsync(user);
         }

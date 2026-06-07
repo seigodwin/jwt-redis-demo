@@ -1,63 +1,36 @@
 
-using System.Text.Json;
 using JwtDemo.Services.Caching.Interfaces;
-using Microsoft.Extensions.Caching.Distributed;
+using StackExchange.Redis;
 
 namespace JwtDemo.Services.Caching.Implimentations
 {
     public class RedisCacheService : IRedisCacheService
     {
-        private readonly IDistributedCache _redisCacheService;
-        public RedisCacheService(IDistributedCache redisCacheService)
+        IDatabase _cache;
+        public RedisCacheService(IConnectionMultiplexer redis)
         {
-            _redisCacheService = redisCacheService;
+            _cache = redis.GetDatabase();
         }
-        public async Task<T?> GetAsync<T>(string key)
+        public async Task<bool> IsRateLimited(string key, int limit, TimeSpan window)
         {
-            if(string.IsNullOrEmpty(key)) return default;
-
-            var data = await _redisCacheService.GetStringAsync(key);
-            
-            if(string.IsNullOrEmpty(data))
+            if (string.IsNullOrWhiteSpace(key))
             {
-                return default;
-            }
-            try
-            {
-                return JsonSerializer.Deserialize<T>(data);
-            }
-            catch (JsonException)
-            {
-                await _redisCacheService.RemoveAsync(key);
-                return default;
-            }
-        }
-
-        public async Task RemoveAsync(string key)
-        {
-            if(string.IsNullOrEmpty(key)) return;
-            await _redisCacheService.RemoveAsync(key);
-        }
-
-        public async Task SetAsync<T>(string key, T value, 
-        TimeSpan? absoluteExpiry = null, TimeSpan? slidingExpiry = null)
-        {
-            if(value is null || string.IsNullOrEmpty(key)) return;
-
-            var options = new DistributedCacheEntryOptions();
-            if (absoluteExpiry.HasValue)
-            {
-                options.AbsoluteExpirationRelativeToNow = absoluteExpiry.Value;
+                throw new ArgumentException($"Key cannot be null or empty space{nameof(key)}");
             }
 
-            if (slidingExpiry.HasValue)
+            var attempt = await _cache.StringIncrementAsync(key);
+
+            if(attempt == 1)
             {
-                options.SlidingExpiration = slidingExpiry;
+                await _cache.KeyExpireAsync(key, window);
             }
-           
-            var jsonData = JsonSerializer.Serialize(value);
-            await _redisCacheService.SetStringAsync(key, jsonData, options);
-    
+
+            if(attempt > limit)
+            {
+                return true;
+            }
+
+        return false;
         }
     }
 }

@@ -1,5 +1,4 @@
-using JwtDemo.DbContext;
-using JwtDemo.Utility;
+using JwtDemo.DbContext; 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Scalar.AspNetCore;
@@ -17,6 +16,7 @@ using JwtDemo.Services.Users.Interfaces;
 using JwtDemo.Services.Users.Implimentations;
 using JwtDemo.Services.Caching.Interfaces;
 using JwtDemo.Services.Caching.Implimentations;
+using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -62,19 +62,26 @@ builder.Services.AddRateLimiter(options =>
     });
 });
 
-//Redis cache
+var redisConnectionString = builder.Configuration["REDIS_CONNECTIONSTRING"] ?? throw new InvalidOperationException("Redis connection string is not configured.");
+//Distributed cache
 builder.Services.AddStackExchangeRedisCache( o =>
 {
-    o.Configuration = builder.Configuration["REDIS_CONNECTIONSTRING"] ?? throw new InvalidOperationException("Redis connection string is not configured.");
-    o.InstanceName = "JwtDemoCache";
+    o.Configuration = redisConnectionString;
 });
+
+//Redis Cache
+builder.Services.AddSingleton<IConnectionMultiplexer>(
+    ConnectionMultiplexer.Connect(redisConnectionString)
+);
 
 //App services
 builder.Services.AddScoped<IAuthService, AuthService>(); 
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IDistributedRedisCacheService, DistributedRedisCacheService>();
 builder.Services.AddScoped<IRedisCacheService, RedisCacheService>();
+
 
 
 //Add JwtOptions from .env file
