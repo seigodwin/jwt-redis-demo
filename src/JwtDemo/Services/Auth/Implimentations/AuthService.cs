@@ -53,7 +53,7 @@ namespace JwtDemo.Services.Auth.Implimentations
                 return response;
             }
 
-            if(request.Roles is not null && request.Roles.Count > 0)
+            if(request.Roles.Count > 0)
             {
                 var cleanRoles = request.Roles
                     .Where(r => !string.IsNullOrWhiteSpace(r))
